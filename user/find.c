@@ -3,30 +3,10 @@
 #include "user/user.h"
 #include "kernel/fs.h"
 
-char*
-fmtname(char *path)
-{
-  static char buf[DIRSIZ+1];
-  char *p;
-
-  // Find first character after last slash.
-  for(p=path+strlen(path); p >= path && *p != '/'; p--)
-    ;
-  p++;
-
-  // Return blank-padded name.
-  if(strlen(p) >= DIRSIZ)
-    return p;
-  memmove(buf, p, strlen(p));
-  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
-  return buf;
-}
-
 void
 find(char *path, char* file)
 {
   char buf[512], *p;
-  char tmp1[512], tmp2[512], tmp3[512];
   int fd;
   struct dirent de;
   struct stat st;
@@ -44,14 +24,8 @@ find(char *path, char* file)
 
   switch(st.type){
   case T_FILE:
-    strcpy(tmp1, fmtname(path));
-    strcpy(tmp2, fmtname(file));
-
-    if (strcmp(tmp1, tmp2) == 0)
-    {
-      printf("%s\n", buf);
-    }
-    // printf("%s %d %d %l\n", fmtname(path), st.type, st.ino, st.size);
+    if (strcmp(path + strlen(path) - strlen(file), file) == 0)
+      printf("%s\n", path);
     break;
 
   case T_DIR:
@@ -71,29 +45,13 @@ find(char *path, char* file)
         printf("find: cannot stat %s\n", buf);
         continue;
       }
-      strcpy(tmp1, fmtname(buf));
-      strcpy(tmp2, fmtname("."));
-      strcpy(tmp3, fmtname(".."));
-
-      if (strcmp(tmp1, tmp2) && strcmp(tmp1, tmp3))
+      
+      if (strcmp(buf + strlen(buf) - 2, "/.") != 0 && strcmp(buf + strlen(buf) - 3, "/..") != 0)
       {
-        printf("%s %s\n", buf, file);
+        // DEBUG:
+        // printf("%s %s\n", buf, file);
         find(buf, file);
       }
-
-      // strcpy(tmp1, fmtname(buf));
-      // strcpy(tmp2, fmtname(file));
-
-      // if (strcmp(tmp1, tmp2) == 0)
-      // {
-      //   printf("%s\n", buf);
-      // }
-
-      // if (strcmp(fmtname(buf), ".") && strcmp(fmtname(buf), ".."))
-      //   find(buf, file);
-      // printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
-      // printf("file = %s\n", file);
-      // printf("%d %d\n", strlen(fmtname(buf)), strlen(file));
     }
     break;
   }
@@ -110,7 +68,11 @@ main(int argc, char *argv[])
     exit(1);
   }
   
-  find(argv[1], argv[2]);
+  char file[512];
+  file[0] = '/';
+  strcpy(file + 1, argv[2]);
+
+  find(argv[1], file);
 
   exit(0);
 }
